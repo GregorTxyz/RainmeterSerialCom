@@ -19,7 +19,11 @@ void loop() {
   //Serial read:
   inputString = serialRead();
   if(inputString == "DHT11\n"){
-    inputString = readDHT11(2);
+    inputString = readDHT(3,11);
+    Serial.println(inputString);
+    inputString = "";
+  }else if(inputString == "DHT22\n"){
+    inputString = readDHT(2,22);
     Serial.println(inputString);
     inputString = "";
   }else if(inputString == "LED1\n"){
@@ -58,12 +62,14 @@ String serialRead(){
 }
 
 //Function to read DHT11 sensor
-String readDHT11(int pin){
+String readDHT(int pin, int type){
     String data = "";
     uint8_t bits[5];
     uint8_t cnt = 7;
     uint8_t idx = 0;
     uint8_t error = 0;
+    double humidity;
+    double temperature;
       
     // EMPTY BUFFER
     for (int i=0; i< 5; i++) bits[i] = 0;
@@ -116,15 +122,28 @@ String readDHT11(int pin){
       else cnt--;
     }
     //check data
-    uint8_t sum = bits[0] + bits[2];  
-    if ((bits[4] != sum) && (error < 1)) error = 5;;
+    uint8_t sum = bits[0] + bits[1] + bits[2] + bits[3];  
+    if ((bits[4] != sum) && (error < 1)) error = 5;
     //Check if error
     if(error > 0){
        data = "E:"+String(error);
     }else{
-       data = "T:"+String(bits[2])+",H:"+String(bits[0]); 
+      if(type == 11){
+          data = "d11Temp:" + String(bits[2]) + '\n' + "d11Humi:" + String(bits[0]);  //DHT11
+       }
+         
+      if(type == 22){
+        humidity = word(bits[0], bits[1]) * 0.1;
+        temperature = word(bits[2] & 0x7F, bits[3]) * 0.1;
+        if (bits[2] & 0x80)  // negative temperature
+        {
+            temperature = -temperature;
+        }
+        data = "d22Humi:" + String(humidity) + '\n' + "d22Temp:" + String(temperature);
+      }
     }
+    
     //return data
-    return "DHT11;" + data;
+    return data;
 }
 
